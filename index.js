@@ -47,9 +47,17 @@ const run = async () => {
 const getData = async (page, element) => {
     const title = await element.$('._1wjpf');
     console.log(await page.evaluate(element => element.textContent, title));
-    const chatBubbles = await page.$$('span.selectable-text.invisible-space.copyable-text');
+    // const chatBubbles = await page.$$('span.selectable-text.invisible-space.copyable-text');
+
+    const chatBubbles = await page.$$('.vW7d1:not(._3rjxZ)');
     await asyncForEach(chatBubbles, async (bubble) => {
-        console.log(await page.evaluate(element => element.textContent, bubble));
+        // console.log(await page.evaluate(element => element.textContent, bubble));
+
+        if (await bubble.$('div.message-in') !== null) {
+            console.log('C: ' + await page.evaluate(element => element.textContent, await bubble.$('span.selectable-text.invisible-space.copyable-text')));
+        } else {
+            console.log('B: ' + await page.evaluate(element => element.textContent, await bubble.$('span.selectable-text.invisible-space.copyable-text')));
+        }
     });
 };
 

@@ -9,7 +9,8 @@ const { parseMessageList } = require('./src/methods/Messages');
 const run = async () => {
     const browser = await puppeteer.launch({
         headless: false,
-        executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        executablePath:
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         userDataDir: 'user'
     });
 
@@ -17,16 +18,16 @@ const run = async () => {
     await page.goto('https://web.whatsapp.com', {
         waitUntil: 'load'
     });
-    
+
     setTimeout(async () => {
         const chats = await page.$$('._2wP_Y');
         chats[chats.length] = chats[0];
         chats.shift();
         chats.reverse();
-        
+
         console.log(chats.length);
 
-        await asyncForEach(chats, async (element) => {
+        await asyncForEach(chats, async element => {
             await element.click();
             await sleep(2);
             await autoScroll(page, '_3dGYA');

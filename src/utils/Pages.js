@@ -15,7 +15,10 @@ const autoScroll = async (page, waitingElementClass) => {
         document.querySelector('._2nmDZ').scrollBy(0, -1000);
     }, await page.$('body'));
     await sleep(2);
-    return await page.$(`.${waitingElementClass}`) === null || autoScroll(page, waitingElementClass);
+    return (
+        (await page.$(`.${waitingElementClass}`)) === null ||
+        autoScroll(page, waitingElementClass)
+    );
 };
 
-module.exports = { autoScroll }
+module.exports = { autoScroll };

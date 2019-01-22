@@ -13,12 +13,10 @@
  * @param {AsyncForEachCallback<T>} callback
  * @template T
  */
-const asyncForEach = async (
-    array,
-    callback
-) => array.reduce(async (acc, currentValue, currentIndex, arr) => {
-    await acc;
-    return callback(currentValue, currentIndex, arr)
-}, Promise.resolve());
+const asyncForEach = async (array, callback) =>
+    array.reduce(async (acc, currentValue, currentIndex, arr) => {
+        await acc;
+        return callback(currentValue, currentIndex, arr);
+    }, Promise.resolve());
 
 module.exports = { asyncForEach };

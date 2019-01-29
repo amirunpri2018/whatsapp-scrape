@@ -21,6 +21,15 @@ const autoScroll = async (page, waitingElementClass) => {
 };
 
 /**
+ * @param {Page} page
+ * @param {ElementHandle} element
+ * @param {number} x
+ * @param {number} y
+ */
+const scrollTo = async (page, element, x, y) =>
+    page.evaluate((p, a, b) => p.scrollTo(a, b), element, x, y);
+
+/**
  * @param {ElementHandle} element
  * @param {string} name
  * @returns {Promise<T>}
@@ -29,4 +38,12 @@ const autoScroll = async (page, waitingElementClass) => {
 const getProperty = async (element, name) =>
     (await element.getProperty(name)).jsonValue();
 
-module.exports = { autoScroll, getProperty };
+/**
+ * @param {ElementHandle} element
+ * @param {string} selector
+ * @returns {Promise<ElementHandle>}
+ */
+const waitForFromElement = async (element, selector) =>
+    (await element.$(selector)) || waitForFromElement(element, selector);
+
+module.exports = { autoScroll, scrollTo, getProperty, waitForFromElement };

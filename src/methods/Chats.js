@@ -1,5 +1,5 @@
 const { sleep } = require('../utils/Utils');
-const { getProperty } = require('../utils/Pages');
+const { getProperty, scrollTo, waitForFromElement } = require('../utils/Pages');
 
 /**
  * @typedef {import('puppeteer').Page} Page
@@ -9,27 +9,7 @@ const { getProperty } = require('../utils/Pages');
 /**
  * @param {Page} page
  */
-const waitForChat = async page => page.waitForSelector('div._2wP_Y');
-
-/**
- * @param {ElementHandle} element
- * @param {string} selector
- * @returns {Promise<ElementHandle>}
- */
-const waitForChild = async (element, selector) =>
-    (await element.$(selector)) || waitForChild(element, selector);
-
-/**
- * @param {ElementHandle} element
- * @param {string} selector
- * @param {number} timer
- * @returns {Promise<void>}
- */
-const waitForChildToGoAway = async (element, selector, timer = 2) => {
-    await sleep(timer);
-    const child = await element.$(selector);
-    return child ? waitForChildToGoAway(element, selector, timer) : undefined;
-};
+const waitForChat = async page => page.waitFor('div._2wP_Y');
 
 /**
  * @typedef {object} Contact
@@ -88,22 +68,15 @@ const createInitialAcc = async page => ({
  * @returns {Promise<void>}
  */
 const showContactDetail = async (page, chat) => {
-    (await waitForChild(chat, 'div[tabindex="-1"]')).click();
+    (await waitForFromElement(chat, 'div[tabindex="-1"]')).click();
     await sleep(2);
-    (await page.waitForSelector('div._1WBXd')).click();
-    await page.waitForSelector('div._1CRb5._34vig');
-    await waitForChildToGoAway(page, 'div._3dGYA[title="loading messages"]');
+    (await page.waitFor('div._1WBXd')).click();
+    await page.waitFor('div._1CRb5._34vig');
+    await page.waitFor('div._3dGYA[title="loading messages"]', {
+        hidden: true
+    });
     await sleep(2);
 };
-
-/**
- * @param {Page} page
- * @param {ElementHandle} element
- * @param {number} x
- * @param {number} y
- */
-const scrollTo = async (page, element, x, y) =>
-    page.evaluate((p, a, b) => p.scrollTo(a, b), element, x, y);
 
 /**
  * @param {ElementHandle} parent
@@ -135,11 +108,11 @@ const isInValidosition = async (parent, chat, chatHeight) => {
 };
 
 /**
- * @param {Promise<Acc>} acc
  * @param {Page} page
+ * @param {Promise<Acc>} acc
  * @returns {Promise<Chat[]>}
  */
-const scrapeChats = async (acc, page) => {
+const scrapeChats = async (page, acc) => {
     const accumulator = acc ? await acc : await createInitialAcc(page);
     const {
         parent,
@@ -159,12 +132,12 @@ const scrapeChats = async (acc, page) => {
     );
 
     if (names.indexOf(chatName) > 1) {
-        return scrapeChats(Promise.resolve(accumulator), page);
+        return scrapeChats(page, Promise.resolve(accumulator));
     }
 
     const chatHeight = await getProperty(chat, 'offsetHeight');
     if (!reachBottom && (await isInValidosition(parent, chat, chatHeight))) {
-        return scrapeChats(Promise.resolve(accumulator), page);
+        return scrapeChats(page, Promise.resolve(accumulator));
     }
 
     names.push(chatName);
@@ -181,6 +154,7 @@ const scrapeChats = async (acc, page) => {
     return reachBottom && currentChats.length === 0
         ? allChats
         : scrapeChats(
+              page,
               Promise.resolve({
                   parent,
                   currentChats: await page.$$('div._2wP_Y'),
@@ -188,8 +162,7 @@ const scrapeChats = async (acc, page) => {
                   reachBottom: !shouldScroll,
                   allChats,
                   names
-              }),
-              page
+              })
           );
 };
 

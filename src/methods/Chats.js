@@ -9,7 +9,7 @@ const { getProperty } = require('../utils/Pages');
 /**
  * @param {Page} page
  */
-const waitForChat = async page => page.waitForSelector('div._2wP_Y');
+const waitForChat = async page => page.waitFor('div._2wP_Y');
 
 /**
  * @param {ElementHandle} element
@@ -18,18 +18,6 @@ const waitForChat = async page => page.waitForSelector('div._2wP_Y');
  */
 const waitForChild = async (element, selector) =>
     (await element.$(selector)) || waitForChild(element, selector);
-
-/**
- * @param {ElementHandle} element
- * @param {string} selector
- * @param {number} timer
- * @returns {Promise<void>}
- */
-const waitForChildToGoAway = async (element, selector, timer = 2) => {
-    await sleep(timer);
-    const child = await element.$(selector);
-    return child ? waitForChildToGoAway(element, selector, timer) : undefined;
-};
 
 /**
  * @typedef {object} Contact
@@ -90,9 +78,11 @@ const createInitialAcc = async page => ({
 const showContactDetail = async (page, chat) => {
     (await waitForChild(chat, 'div[tabindex="-1"]')).click();
     await sleep(2);
-    (await page.waitForSelector('div._1WBXd')).click();
-    await page.waitForSelector('div._1CRb5._34vig');
-    await waitForChildToGoAway(page, 'div._3dGYA[title="loading messages"]');
+    (await page.waitFor('div._1WBXd')).click();
+    await page.waitFor('div._1CRb5._34vig');
+    await page.waitFor('div._3dGYA[title="loading messages"]', {
+        hidden: true
+    });
     await sleep(2);
 };
 

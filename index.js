@@ -19,7 +19,7 @@ const run = async () => {
     await waitForChat(page);
     const chats = await scrapeChats(null, page);
     console.log(JSON.stringify(chats, null, 2));
-    console.log(`chats length: ${Object.keys(chats).length}`);
+    console.log(`chats length: ${chats.length}`);
 };
 
 run();

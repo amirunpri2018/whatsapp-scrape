@@ -1,9 +1,8 @@
-'use strict';
-
 const { sleep } = require('./Utils');
 
 /**
  * @typedef {import('puppeteer').Page} Page
+ * @typedef {import('puppeteer').ElementHandle} ElementHandle
  */
 
 /**
@@ -21,4 +20,13 @@ const autoScroll = async (page, waitingElementClass) => {
     );
 };
 
-module.exports = { autoScroll };
+/**
+ * @param {ElementHandle} element
+ * @param {string} name
+ * @returns {Promise<T>}
+ * @template T
+ */
+const getProperty = async (element, name) =>
+    (await element.getProperty(name)).jsonValue();
+
+module.exports = { autoScroll, getProperty };

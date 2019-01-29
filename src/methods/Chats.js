@@ -98,7 +98,7 @@ const isShouldScroll = async (parent, nextHeight) => {
  * @param {number} chatHeight
  * @returns {Promise<boolean>}
  */
-const isInValidosition = async (parent, chat, chatHeight) => {
+const isInValidPosition = async (parent, chat, chatHeight) => {
     const parentTopPixel = (await parent.boundingBox()).y;
     const chatTopPixel = (await chat.boundingBox()).y;
     return (
@@ -131,12 +131,12 @@ const scrapeChats = async (page, acc) => {
         'title'
     );
 
-    if (names.indexOf(chatName) > 1) {
+    if (names.indexOf(chatName) >= 0) {
         return scrapeChats(page, Promise.resolve(accumulator));
     }
 
     const chatHeight = await getProperty(chat, 'offsetHeight');
-    if (!reachBottom && (await isInValidosition(parent, chat, chatHeight))) {
+    if (!reachBottom && (await isInValidPosition(parent, chat, chatHeight))) {
         return scrapeChats(page, Promise.resolve(accumulator));
     }
 

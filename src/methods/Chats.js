@@ -54,12 +54,19 @@ const scrapeContact = async page => {
 };
 
 /**
+ * @typedef {object} Chat
+ * @property {string} name
+ * @property {string} phone
+ * @property {string} about
+ */
+/**
  * @typedef {object} Acc
  * @property {ElementHandle} parent
  * @property {ElementHandle[]} currentChats
  * @property {number} currentHeight
  * @property {boolean} reachBottom
- * @property {Object<string, Contact>} allChats
+ * @property {Chat[]} allChats
+ * @property {string[]} names
  */
 
 /**
@@ -71,7 +78,8 @@ const createInitialAcc = async page => ({
     currentChats: await page.$$('div._2wP_Y'),
     currentHeight: 0,
     reachBottom: false,
-    allChats: {}
+    allChats: [],
+    names: []
 });
 
 /**
@@ -129,7 +137,7 @@ const isInValidosition = async (parent, chat, chatHeight) => {
 /**
  * @param {Promise<Acc>} acc
  * @param {Page} page
- * @returns {Promise<Object<string, Contact>>}
+ * @returns {Promise<Chat[]>}
  */
 const scrapeChats = async (acc, page) => {
     const accumulator = acc ? await acc : await createInitialAcc(page);
@@ -138,7 +146,8 @@ const scrapeChats = async (acc, page) => {
         currentChats,
         allChats,
         currentHeight,
-        reachBottom
+        reachBottom,
+        names
     } = accumulator;
     if (currentChats.length === 0) {
         return allChats;
@@ -149,7 +158,7 @@ const scrapeChats = async (acc, page) => {
         'title'
     );
 
-    if (Object.keys(allChats).indexOf(chatName) > 1) {
+    if (names.indexOf(chatName) > 1) {
         return scrapeChats(Promise.resolve(accumulator), page);
     }
 
@@ -158,8 +167,10 @@ const scrapeChats = async (acc, page) => {
         return scrapeChats(Promise.resolve(accumulator), page);
     }
 
+    names.push(chatName);
     await showContactDetail(page, chat);
-    allChats[chatName] = await scrapeContact(page);
+    const { phone, about } = await scrapeContact(page);
+    allChats.push({ name: chatName, about, phone });
 
     const nextHeight = currentHeight + chatHeight;
     const shouldScroll = await isShouldScroll(parent, nextHeight);
@@ -175,7 +186,8 @@ const scrapeChats = async (acc, page) => {
                   currentChats: await page.$$('div._2wP_Y'),
                   currentHeight: nextHeight,
                   reachBottom: !shouldScroll,
-                  allChats
+                  allChats,
+                  names
               }),
               page
           );

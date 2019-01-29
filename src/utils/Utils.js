@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * @param {number} seconds
  * @returns {Promise<void>}

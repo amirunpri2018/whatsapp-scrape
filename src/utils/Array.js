@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * @callback AsyncForEachCallback
  * @param {T} currentValue

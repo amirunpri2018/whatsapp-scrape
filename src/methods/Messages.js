@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * @typedef {import('puppeteer').Page} Page
  * @typedef {import('puppeteer').ElementHandle} ElementHandle

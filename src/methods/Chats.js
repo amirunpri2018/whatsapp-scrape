@@ -62,6 +62,12 @@ const autoScroll = async page => {
 };
 
 /**
+ * @typedef {object} Message
+ * @property {"in" | "out"} type
+ * @property {string} text
+ * @property {string} imageUri
+ */
+/**
  * @param {Page} page
  */
 const scrapAllMessages = async page => {
@@ -70,6 +76,13 @@ const scrapAllMessages = async page => {
         'div.vW7d1 > div._3_7SH._3DFk6, div.vW7d1 > div._3_7SH._3qMSo, div.vW7d1._3rjxZ > div._3_7SH.Zq3Mc > span'
     );
     const reversed = elements.reverse();
+    /**
+     * @typedef {object} Messages
+     * @property {Message[]} messages
+     */
+    /**
+     * @type {Messages}
+     */
     const { messages } = await reversed.reduce(async (p, element) => {
         const acc = await p;
         if (acc.srapeNext) {
@@ -104,6 +117,7 @@ const scrapAllMessages = async page => {
  * @property {string} name
  * @property {string} phone
  * @property {string} about
+ * @property {Message[]} messages
  */
 /**
  * @typedef {object} Acc

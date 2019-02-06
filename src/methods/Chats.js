@@ -1,6 +1,13 @@
 const { sleep } = require('../utils/Utils');
 const { getProperty, scrollTo, waitForFromElement } = require('../utils/Pages');
 
+const todayTimeRegex = /^[0-2][0-9]:[0-5][0-9]$/;
+
+/**
+ * @param {string} text
+ */
+const isToday = text => todayTimeRegex.test(text);
+
 /**
  * @typedef {import('puppeteer').Page} Page
  * @typedef {import('puppeteer').ElementHandle} ElementHandle
@@ -174,13 +181,25 @@ const scrapeChats = async (page, acc) => {
     if (!reachBottom && (await isInValidPosition(parent, chat, chatHeight))) {
         return scrapeChats(page, Promise.resolve(accumulator));
     }
+    const timeElement = await chat.$(
+        'div._2EXPL > div._3j7s9 > div._2FBdJ > div._3Bxar > span._3T2VG'
+    );
+    /** @type {string} */
+    const time = timeElement && (await getProperty(timeElement, 'textContent'));
+    const unreadElement = await chat.$(
+        'div._2EXPL > div._3j7s9 > div._1AwDx > div._3Bxar > span > div._15G96 > span.OUeyt'
+    );
 
     names.push(chatName);
-    await showMessages(chat);
-    await scrapAllMessages(page);
-    await showContactDetail(page);
-    const { phone, about } = await scrapeContact(page);
-    allChats.push({ name: chatName, about, phone });
+    if (unreadElement === null && isToday(time)) {
+        await showMessages(chat);
+        await scrapAllMessages(page);
+        await showContactDetail(page);
+        const { phone, about } = await scrapeContact(page);
+        allChats.push({ name: chatName, time, about, phone });
+    } else {
+        await sleep(2);
+    }
 
     const nextHeight = currentHeight + chatHeight;
     const shouldScroll = await isShouldScroll(parent, nextHeight);

@@ -34,6 +34,35 @@ const scrapeContact = async page => {
 };
 
 /**
+ * @param {Page} page
+ */
+const autoScroll = async page => {
+    const messagesScroll = await page.waitFor('div._2nmDZ');
+    await page.evaluate(
+        (p, y) => p.scrollBy(0, y),
+        messagesScroll,
+        -(await getProperty(messagesScroll, 'offsetHeight')) * 2
+    );
+    await sleep(2);
+    const times = await messagesScroll.$$(
+        'div.vW7d1._3rjxZ > div._3_7SH.Zq3Mc > span[dir="auto"], div.vW7d1._3rjxZ > div._3_7SH._14b5J.Zq3Mc > div[role="button"] > span > span[dir="ltr"]'
+    );
+    const progress = await page.$(
+        'div._1MsrQ > div._3dGYA > svg._1UDDE > circle._3GbTq.Qf313'
+    );
+    return (times.length >= 2 && progress === null) || autoScroll(page);
+};
+
+/**
+ * @param {Page} page
+ */
+const scrapAllMessages = async page => {
+    await autoScroll(page);
+    const elements = await page.$$('div.vW7d1 > div._3_7SH._3DFk6');
+    console.log(`messages: ${elements.length}`);
+};
+
+/**
  * @typedef {object} Chat
  * @property {string} name
  * @property {string} phone
@@ -63,13 +92,18 @@ const createInitialAcc = async page => ({
 });
 
 /**
- * @param {Page} page
  * @param {ElementHandle} chat
- * @returns {Promise<void>}
  */
-const showContactDetail = async (page, chat) => {
+const showMessages = async chat => {
     (await waitForFromElement(chat, 'div[tabindex="-1"]')).click();
     await sleep(2);
+};
+
+/**
+ * @param {Page} page
+ * @returns {Promise<void>}
+ */
+const showContactDetail = async page => {
     (await page.waitFor('div._1WBXd')).click();
     await page.waitFor('div._1CRb5._34vig');
     await page.waitFor('div._3dGYA[title="loading messages"]', {
@@ -135,13 +169,16 @@ const scrapeChats = async (page, acc) => {
         return scrapeChats(page, Promise.resolve(accumulator));
     }
 
+    /** @type {number} */
     const chatHeight = await getProperty(chat, 'offsetHeight');
     if (!reachBottom && (await isInValidPosition(parent, chat, chatHeight))) {
         return scrapeChats(page, Promise.resolve(accumulator));
     }
 
     names.push(chatName);
-    await showContactDetail(page, chat);
+    await showMessages(chat);
+    await scrapAllMessages(page);
+    await showContactDetail(page);
     const { phone, about } = await scrapeContact(page);
     allChats.push({ name: chatName, about, phone });
 

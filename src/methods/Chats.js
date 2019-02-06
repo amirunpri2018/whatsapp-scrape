@@ -2,6 +2,7 @@ const { sleep } = require('../utils/Utils');
 const { getProperty, scrollTo, waitForFromElement } = require('../utils/Pages');
 
 const todayTimeRegex = /^[0-2][0-9]:[0-5][0-9]$/;
+const messageInRegex = /message-in/;
 
 /**
  * @param {string} text
@@ -65,8 +66,37 @@ const autoScroll = async page => {
  */
 const scrapAllMessages = async page => {
     await autoScroll(page);
-    const elements = await page.$$('div.vW7d1 > div._3_7SH._3DFk6');
-    console.log(`messages: ${elements.length}`);
+    const elements = await page.$$(
+        'div.vW7d1 > div._3_7SH._3DFk6, div.vW7d1 > div._3_7SH._3qMSo, div.vW7d1._3rjxZ > div._3_7SH.Zq3Mc > span'
+    );
+    const reversed = elements.reverse();
+    const { messages } = await reversed.reduce(async (p, element) => {
+        const acc = await p;
+        if (acc.srapeNext) {
+            /** @type {string} */
+            const className = await getProperty(element, 'className');
+            if (
+                className === '' &&
+                (await getProperty(element, 'textContent')) === 'TODAY'
+            ) {
+                return { srapeNext: false, messages: acc.messages };
+            }
+            const txtElement = await element.$('div._3zb-j.ZhF0n > span');
+            const imgElement = await element.$('div._3v3PK > img._1JVSX');
+            /** @type {string} */
+            const imgSrc = imgElement && (await getProperty(imgElement, 'src'));
+            acc.messages.push({
+                type: messageInRegex.test(className) ? 'in' : 'out',
+                text:
+                    txtElement &&
+                    (await getProperty(txtElement, 'textContent')),
+                imageUri: imgSrc && imgSrc.slice(5)
+            });
+            return acc;
+        }
+        return acc;
+    }, Promise.resolve({ srapeNext: true, messages: [] }));
+    return messages;
 };
 
 /**
@@ -167,12 +197,12 @@ const scrapeChats = async (page, acc) => {
         return allChats;
     }
     const chat = currentChats.pop();
-    const chatName = await getProperty(
+    const name = await getProperty(
         await chat.$('span._1wjpf:not(._3NFp9)'),
         'title'
     );
 
-    if (names.indexOf(chatName) >= 0) {
+    if (names.indexOf(name) >= 0) {
         return scrapeChats(page, Promise.resolve(accumulator));
     }
 
@@ -190,13 +220,13 @@ const scrapeChats = async (page, acc) => {
         'div._2EXPL > div._3j7s9 > div._1AwDx > div._3Bxar > span > div._15G96 > span.OUeyt'
     );
 
-    names.push(chatName);
+    names.push(name);
     if (unreadElement === null && isToday(time)) {
         await showMessages(chat);
-        await scrapAllMessages(page);
+        const messages = await scrapAllMessages(page);
         await showContactDetail(page);
         const { phone, about } = await scrapeContact(page);
-        allChats.push({ name: chatName, time, about, phone });
+        allChats.push({ name, time, about, phone, messages });
     } else {
         await sleep(2);
     }

@@ -24,6 +24,7 @@ const run = async () => {
 
     await waitForChat(page);
     const chats = await scrapeChats(page);
+    console.log(`chats: ${JSON.stringify(chats, null, 2)}`);
     /**
      * @typedef {object} Messages
      * @property {string[]} deals

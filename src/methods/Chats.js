@@ -1,3 +1,5 @@
+const { from } = require('rxjs');
+const { scan, concatMap, takeWhile } = require('rxjs/operators');
 const { sleep } = require('../utils/Utils');
 const { getProperty, scrollTo, waitForFromElement } = require('../utils/Pages');
 
@@ -68,48 +70,52 @@ const autoScroll = async page => {
  * @property {string} imageUri
  */
 /**
+ * @typedef {object} ElementAndClassName
+ * @property {ElementHandle} element
+ * @property {string} className
+ */
+/**
+ * @param {ElementHandle} element
+ * @returns {ElementAndClassName}
+ */
+const mapElementToElementAndClassName = async element => ({
+    element,
+    className: await getProperty(element, 'className')
+});
+
+/**
+ * @param {ElementAndClassName} param
+ * @returns {Message}
+ */
+const mapElementAndClassNameToMessage = async ({ element, className }) => {
+    const txtElement = await element.$('div._3zb-j.ZhF0n > span');
+    const imgElement = await element.$('div._3v3PK > img._1JVSX');
+    /** @type {string} */
+    const imgSrc = imgElement && (await getProperty(imgElement, 'src'));
+    return {
+        type: messageInRegex.test(className) ? 'in' : 'out',
+        text: txtElement && (await getProperty(txtElement, 'textContent')),
+        imageUri: imgSrc && imgSrc.slice(5)
+    };
+};
+
+/**
  * @param {Page} page
+ * @returns {Message[]}
  */
 const scrapAllMessages = async page => {
     await autoScroll(page);
     const elements = await page.$$(
         'div.vW7d1 > div._3_7SH._3DFk6, div.vW7d1 > div._3_7SH._3qMSo, div.vW7d1._3rjxZ > div._3_7SH.Zq3Mc > span'
     );
-    const reversed = elements.reverse();
-    /**
-     * @typedef {object} Messages
-     * @property {Message[]} messages
-     */
-    /**
-     * @type {Messages}
-     */
-    const { messages } = await reversed.reduce(async (p, element) => {
-        const acc = await p;
-        if (acc.srapeNext) {
-            /** @type {string} */
-            const className = await getProperty(element, 'className');
-            if (
-                className === '' &&
-                (await getProperty(element, 'textContent')) === 'TODAY'
-            ) {
-                return { srapeNext: false, messages: acc.messages };
-            }
-            const txtElement = await element.$('div._3zb-j.ZhF0n > span');
-            const imgElement = await element.$('div._3v3PK > img._1JVSX');
-            /** @type {string} */
-            const imgSrc = imgElement && (await getProperty(imgElement, 'src'));
-            acc.messages.push({
-                type: messageInRegex.test(className) ? 'in' : 'out',
-                text:
-                    txtElement &&
-                    (await getProperty(txtElement, 'textContent')),
-                imageUri: imgSrc && imgSrc.slice(5)
-            });
-            return acc;
-        }
-        return acc;
-    }, Promise.resolve({ srapeNext: true, messages: [] }));
-    return messages;
+    return from(elements.reverse())
+        .pipe(
+            concatMap(mapElementToElementAndClassName),
+            takeWhile(({ className }) => className !== ''),
+            concatMap(mapElementAndClassNameToMessage),
+            scan((acc, v) => [...acc, v], [])
+        )
+        .toPromise();
 };
 
 /**

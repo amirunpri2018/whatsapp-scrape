@@ -23,7 +23,7 @@ const notEmpty = text => text && text.length > 0;
 const parseDeal = text => {
     const split = text.split(dealSplitter);
     return {
-        name: split[1],
+        company: split[1],
         owner: split[2],
         value: split[3],
         probability: split[4],

@@ -1,9 +1,9 @@
 const axios = require('axios');
-const { breefAdminApi } = require('../../env');
+const { breefAdminApi, breefAdminAuthorization } = require('../../env');
 
 /**
  * @typedef {object} Deal
- * @property {string} name
+ * @property {string} company
  * @property {string} owner
  * @property {string} value
  * @property {string} probability
@@ -20,7 +20,10 @@ const { breefAdminApi } = require('../../env');
  * @property {string} owner
  */
 
-const service = axios.default.create({ baseURL: breefAdminApi });
+const service = axios.default.create({
+    baseURL: breefAdminApi,
+    headers: { authorization: breefAdminAuthorization }
+});
 
 /** @param {Deal[]} data */
 const postDeals = async data => service.post('/lead', { data });

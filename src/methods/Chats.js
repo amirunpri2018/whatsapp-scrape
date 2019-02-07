@@ -1,9 +1,8 @@
 const { from } = require('rxjs');
-const { scan, concatMap, takeWhile } = require('rxjs/operators');
+const { scan, concatMap, takeWhile, filter } = require('rxjs/operators');
 const { sleep } = require('../utils/Utils');
 const { getProperty, scrollTo, waitForFromElement } = require('../utils/Pages');
 
-const todayTimeRegex = /^[0-2][0-9]:[0-5][0-9]$/;
 const messageInRegex = /message-in/;
 
 /**
@@ -40,8 +39,9 @@ const scrapeContact = async page => {
 
 /**
  * @param {Page} page
+ * @param {RegExp} maxRegExp
  */
-const autoScroll = async page => {
+const autoScroll = async (page, maxRegExp) => {
     const messagesScroll = await page.waitFor('div._2nmDZ');
     await page.evaluate(
         (p, y) => p.scrollBy(0, y),
@@ -55,7 +55,17 @@ const autoScroll = async page => {
     const progress = await page.$(
         'div._1MsrQ > div._3dGYA > svg._1UDDE > circle._3GbTq.Qf313'
     );
-    return (times.length >= 2 && progress === null) || autoScroll(page);
+    /** @type {string[]} */
+    const timesText = await times.reduce(
+        async (acc, v) => [...(await acc), await getProperty(v, 'textContent')],
+        []
+    );
+    return (
+        (timesText.length >= 2 &&
+            timesText.findIndex(t => maxRegExp.test(t)) >= 0 &&
+            progress === null) ||
+        autoScroll(page, maxRegExp)
+    );
 };
 
 /**
@@ -63,26 +73,39 @@ const autoScroll = async page => {
  * @property {"in" | "out"} type
  * @property {string} text
  * @property {string} imageUri
+ * @property {string} time
  */
 /**
  * @typedef {object} ElementAndClassName
  * @property {ElementHandle} element
+ * @property {boolean} isTime
+ * @property {string} time
  * @property {string} className
  */
 /**
  * @param {ElementHandle} element
  * @returns {ElementAndClassName}
  */
-const mapElementToElementAndClassName = async element => ({
-    element,
-    className: await getProperty(element, 'className')
-});
+const mapElementToElementAndClassName = async element => {
+    const className = await getProperty(element, 'className');
+    const isTime = className === '';
+    return {
+        element,
+        isTime,
+        time: isTime ? await getProperty(element, 'textContent') : null,
+        className
+    };
+};
 
 /**
  * @param {ElementAndClassName} param
  * @returns {Message}
  */
-const mapElementAndClassNameToMessage = async ({ element, className }) => {
+const mapElementAndClassNameToMessage = async ({
+    element,
+    className,
+    time
+}) => {
     const txtElement = await element.$('div._3zb-j.ZhF0n > span');
     const imgElement = await element.$('div._3v3PK > img._1JVSX');
     /** @type {string} */
@@ -90,23 +113,26 @@ const mapElementAndClassNameToMessage = async ({ element, className }) => {
     return {
         type: messageInRegex.test(className) ? 'in' : 'out',
         text: txtElement && (await getProperty(txtElement, 'textContent')),
-        imageUri: imgSrc && imgSrc.slice(5)
+        imageUri: imgSrc && imgSrc.slice(5),
+        time
     };
 };
 
 /**
  * @param {Page} page
+ * @param {RegExp} maxRegExp
  * @returns {Message[]}
  */
-const scrapAllMessages = async page => {
-    await autoScroll(page);
+const scrapAllMessages = async (page, maxRegExp) => {
+    await autoScroll(page, maxRegExp);
     const elements = await page.$$(
         'div.vW7d1 > div._3_7SH._3DFk6, div.vW7d1 > div._3_7SH._3qMSo, div.vW7d1._3rjxZ > div._3_7SH.Zq3Mc > span'
     );
     return from(elements.reverse())
         .pipe(
             concatMap(mapElementToElementAndClassName),
-            takeWhile(({ className }) => className !== ''),
+            takeWhile(({ isTime, time }) => !isTime && !maxRegExp.test(time)),
+            filter(({ isTime }) => !isTime),
             concatMap(mapElementAndClassNameToMessage),
             scan((acc, v) => [...acc, v], [])
         )
@@ -195,8 +221,9 @@ const isInValidPosition = async (parent, chat, chatHeight) => {
 
 /**
  * @param {ElementHandle} chat
+ * @param {RegExp} maxRegExp
  */
-const scrapeTimeAndUnreadStatus = async chat => {
+const scrapeTimeAndUnreadStatus = async (chat, maxRegExp) => {
     const timeElement = await chat.$(
         'div._2EXPL > div._3j7s9 > div._2FBdJ > div._3Bxar > span._3T2VG'
     );
@@ -208,75 +235,94 @@ const scrapeTimeAndUnreadStatus = async chat => {
     return {
         time,
         unread: unreadElement !== null,
-        isToday: () => todayTimeRegex.test(time)
+        isToday: () => maxRegExp.test(time)
     };
 };
 
 /**
+ * @typedef {object} ScrapeChatConfig
+ * @property {RegExp} chatsIncludeRegExp
+ * @property {RegExp} messagesMaxRegExp
+ */
+/**
  * @param {Page} page
- * @param {Promise<Acc>} acc
+ * @param {ScrapeChatConfig} config
  * @returns {Promise<Chat[]>}
  */
-const scrapeChats = async (page, acc) => {
-    const accumulator = acc ? await acc : await createInitialAcc(page);
-    const {
-        parent,
-        currentChats,
-        allChats,
-        currentHeight,
-        reachBottom,
-        names
-    } = accumulator;
-    if (currentChats.length === 0) {
-        return allChats;
-    }
-    const chat = currentChats.pop();
-    const name = await getProperty(
-        await chat.$('span._1wjpf:not(._3NFp9)'),
-        'title'
-    );
+const scrapeChats = async (page, { chatsIncludeRegExp, messagesMaxRegExp }) => {
+    /**
+     * @param {Promise<Acc>} acc
+     */
+    const scrape = async acc => {
+        const accumulator = await acc;
+        const {
+            parent,
+            currentChats,
+            allChats,
+            currentHeight,
+            reachBottom,
+            names
+        } = accumulator;
+        if (currentChats.length === 0) {
+            return allChats;
+        }
+        const chat = currentChats.pop();
+        const name = await getProperty(
+            await chat.$('span._1wjpf:not(._3NFp9)'),
+            'title'
+        );
 
-    if (names.indexOf(name) >= 0) {
-        return scrapeChats(page, Promise.resolve(accumulator));
-    }
+        if (names.indexOf(name) >= 0) {
+            return scrape(Promise.resolve(accumulator));
+        }
 
-    /** @type {number} */
-    const chatHeight = await getProperty(chat, 'offsetHeight');
-    if (!reachBottom && (await isInValidPosition(parent, chat, chatHeight))) {
-        return scrapeChats(page, Promise.resolve(accumulator));
-    }
+        /** @type {number} */
+        const chatHeight = await getProperty(chat, 'offsetHeight');
+        if (
+            !reachBottom &&
+            (await isInValidPosition(parent, chat, chatHeight))
+        ) {
+            return scrape(Promise.resolve(accumulator));
+        }
 
-    const { unread, time, isToday } = await scrapeTimeAndUnreadStatus(chat);
-    names.push(name);
-    if (!unread && isToday()) {
-        await showMessages(chat);
-        const messages = await scrapAllMessages(page);
-        await showContactDetail(page);
-        const { phone, about } = await scrapeContact(page);
-        allChats.push({ name, time, about, phone, messages });
-    } else {
-        await sleep(2);
-    }
+        const { unread, time, isToday } = await scrapeTimeAndUnreadStatus(
+            chat,
+            chatsIncludeRegExp
+        );
+        if (!isToday()) {
+            return allChats;
+        }
+        names.push(name);
+        if (unread) {
+            await sleep(2);
+        } else {
+            await showMessages(chat);
+            const messages = await scrapAllMessages(page, messagesMaxRegExp);
+            await showContactDetail(page);
+            const { phone, about } = await scrapeContact(page);
+            allChats.push({ name, time, about, phone, messages });
+        }
 
-    const nextHeight = currentHeight + chatHeight;
-    const shouldScroll = await isShouldScroll(parent, nextHeight);
-    if (shouldScroll) {
-        await scrollTo(page, parent, 0, nextHeight);
-    }
+        const nextHeight = currentHeight + chatHeight;
+        const shouldScroll = await isShouldScroll(parent, nextHeight);
+        if (shouldScroll) {
+            await scrollTo(page, parent, 0, nextHeight);
+        }
 
-    return reachBottom && currentChats.length === 0
-        ? allChats
-        : scrapeChats(
-              page,
-              Promise.resolve({
-                  parent,
-                  currentChats: await page.$$('div._2wP_Y'),
-                  currentHeight: nextHeight,
-                  reachBottom: !shouldScroll,
-                  allChats,
-                  names
-              })
-          );
+        return reachBottom && currentChats.length === 0
+            ? allChats
+            : scrape(
+                  Promise.resolve({
+                      parent,
+                      currentChats: await page.$$('div._2wP_Y'),
+                      currentHeight: nextHeight,
+                      reachBottom: !shouldScroll,
+                      allChats,
+                      names
+                  })
+              );
+    };
+    return scrape(createInitialAcc(page));
 };
 
 module.exports = { waitForChat, scrapeChats };

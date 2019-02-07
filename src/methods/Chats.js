@@ -7,11 +7,6 @@ const todayTimeRegex = /^[0-2][0-9]:[0-5][0-9]$/;
 const messageInRegex = /message-in/;
 
 /**
- * @param {string} text
- */
-const isToday = text => todayTimeRegex.test(text);
-
-/**
  * @typedef {import('puppeteer').Page} Page
  * @typedef {import('puppeteer').ElementHandle} ElementHandle
  */
@@ -199,6 +194,25 @@ const isInValidPosition = async (parent, chat, chatHeight) => {
 };
 
 /**
+ * @param {ElementHandle} chat
+ */
+const scrapeTimeAndUnreadStatus = async chat => {
+    const timeElement = await chat.$(
+        'div._2EXPL > div._3j7s9 > div._2FBdJ > div._3Bxar > span._3T2VG'
+    );
+    /** @type {string} */
+    const time = timeElement && (await getProperty(timeElement, 'textContent'));
+    const unreadElement = await chat.$(
+        'div._2EXPL > div._3j7s9 > div._1AwDx > div._3Bxar > span > div._15G96 > span.OUeyt'
+    );
+    return {
+        time,
+        unread: unreadElement !== null,
+        isToday: () => todayTimeRegex.test(time)
+    };
+};
+
+/**
  * @param {Page} page
  * @param {Promise<Acc>} acc
  * @returns {Promise<Chat[]>}
@@ -231,17 +245,10 @@ const scrapeChats = async (page, acc) => {
     if (!reachBottom && (await isInValidPosition(parent, chat, chatHeight))) {
         return scrapeChats(page, Promise.resolve(accumulator));
     }
-    const timeElement = await chat.$(
-        'div._2EXPL > div._3j7s9 > div._2FBdJ > div._3Bxar > span._3T2VG'
-    );
-    /** @type {string} */
-    const time = timeElement && (await getProperty(timeElement, 'textContent'));
-    const unreadElement = await chat.$(
-        'div._2EXPL > div._3j7s9 > div._1AwDx > div._3Bxar > span > div._15G96 > span.OUeyt'
-    );
 
+    const { unread, time, isToday } = await scrapeTimeAndUnreadStatus(chat);
     names.push(name);
-    if (unreadElement === null && isToday(time)) {
+    if (!unread && isToday()) {
         await showMessages(chat);
         const messages = await scrapAllMessages(page);
         await showContactDetail(page);

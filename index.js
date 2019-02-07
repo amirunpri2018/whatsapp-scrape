@@ -1,7 +1,9 @@
 require('axios');
 require('cheerio');
 const puppeteer = require('puppeteer');
+const scheduler = require('node-schedule');
 const { waitForChat, scrapeChats } = require('./src/methods/Chats');
+const { chromeExecutablePath, userDataDir } = require('./env');
 const {
     isDeal,
     isContact,
@@ -12,9 +14,8 @@ const {
 const run = async () => {
     const browser = await puppeteer.launch({
         headless: false,
-        executablePath:
-            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-        userDataDir: 'user'
+        executablePath: chromeExecutablePath,
+        userDataDir
     });
 
     const page = await browser.newPage();
@@ -49,6 +50,8 @@ const run = async () => {
     const parsedContacts = contacts.map(parseContact);
     console.log(`deals: ${JSON.stringify(parsedDeals, null, 2)}`);
     console.log(`contacts: ${JSON.stringify(parsedContacts, null, 2)}`);
+    await browser.close();
 };
 
-run();
+const job = scheduler.scheduleJob('Scrap WhatsApp', '* * 23 * * *', run);
+job.invoke();

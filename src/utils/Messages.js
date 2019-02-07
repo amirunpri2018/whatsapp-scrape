@@ -16,7 +16,10 @@ const isDeal = text => dealRegex.test(text);
 /** @param {string} text */
 const notEmpty = text => text && text.length > 0;
 
-/** @param {string} text */
+/**
+ * @param {string} text
+ * @returns {import('../services/BreefAdminService').Deal}
+ */
 const parseDeal = text => {
     const split = text.split(dealSplitter);
     return {
@@ -30,7 +33,10 @@ const parseDeal = text => {
     };
 };
 
-/** @param {string} text */
+/**
+ * @param {string} text
+ * @returns {import('../services/BreefAdminService').Contact}
+ */
 const parseContact = text => {
     const split = text.split(contactSplitter);
     return {

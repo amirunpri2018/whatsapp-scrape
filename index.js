@@ -3,14 +3,18 @@ require('axios');
 require('cheerio');
 const scheduler = require('node-schedule');
 const { scrape, scrapeRoute } = require('./src/routes/Scrape');
+const { basicAuth, basicAuthHook } = require('./src/routes/Auth');
 const { port } = require('./env');
 
 scheduler.scheduleJob('Scrap WhatsApp', '* * 23 * * *', () => scrape());
 
 const server = fastify();
-
-server.route(scrapeRoute);
-
+const basicAuthPlugin = basicAuth();
+server.register(basicAuthPlugin.plugin, basicAuthPlugin.options).after(() => {
+    const hook = basicAuthHook(server);
+    server.addHook(hook.name, hook.middleware);
+    server.route(scrapeRoute);
+});
 server.listen(parseInt(port, 10), (err, address) => {
     if (err) {
         // eslint-disable-next-line no-console

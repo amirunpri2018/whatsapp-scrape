@@ -52,20 +52,35 @@ const openPage = async () => {
 
 /** @param {import('./src/methods/Chats').ScrapeChatConfig} config */
 const scrape = async (config = defaultConfig) => {
-    const page = await openPage();
+    try {
+        const page = await openPage();
 
-    await waitForChat(page);
-    const chats = await scrapeChats(page, config);
-    /** @type {Messages} */
-    const { deals, contacts } = chats.reduce(reducer, {
-        deals: [],
-        contacts: []
-    });
-    await Promise.all([
-        page.browser().close(),
-        service.postDeals(deals),
-        service.postContacts(contacts)
-    ]);
+        await waitForChat(page);
+        const chats = await scrapeChats(page, config);
+        /** @type {Messages} */
+        const { deals, contacts } = chats.reduce(reducer, {
+            deals: [],
+            contacts: []
+        });
+        await Promise.all([
+            page.browser().close(),
+            service.postDeals(deals),
+            service.postContacts(contacts)
+        ]);
+        // eslint-disable-next-line no-console
+        console.log(
+            `Scrapping success\n, deals: ${JSON.stringify(
+                deals,
+                null,
+                2
+            )}\ncontacts: ${JSON.stringify(contacts, null, 2)}`
+        );
+    } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log('Srapping failed');
+        // eslint-disable-next-line no-console
+        console.log(err);
+    }
 };
 
 /**

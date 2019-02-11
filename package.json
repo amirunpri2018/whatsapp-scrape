@@ -4,7 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node -r dotenv/config index.js"
+    "start": "node -r dotenv/config index.js",
+    "cron": "node -r dotenv/config cron.js"
   },
   "dependencies": {
     "axios": "^0.18.0",

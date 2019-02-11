@@ -332,9 +332,11 @@ const scrapeChats = async (page, { chatsIncludeRegExp, messagesMaxRegExp }) => {
         const { allChats, names, reachBottom, currentChats } = accumulator;
         names.push(name);
         if (unread) {
+            // eslint-disable-next-line no-console
             console.log(`unread: ${name}, pass`);
             await sleep(2);
         } else {
+            // eslint-disable-next-line no-console
             console.log(`scrape: ${name}`);
             await showMessages(chat);
             const messages = await scrapAllMessages(page, messagesMaxRegExp);

@@ -1,10 +1,8 @@
 const contactRegex = /^Create Contact\nName : .+?\nCompany : .+?\nSources : .+?\nAdd Phone : .+?\nOwner : .+?$/i;
-// eslint-disable-next-line no-useless-escape
-const contactSplitter = /^Create Contact\nName : \s*|\s+Company : \s*|\s+Sources : \s*|\s+Add Phone : \s*|\s+Owner : \s*|\s+\z/gi;
+const contactSplitter = /^Create Contact\nName : \s*|\s+Company : \s*|\s+Sources : \s*|\s+Add Phone : \s*|\s+Owner : \s*|\s+$/gi;
 
 const dealRegex = /^Create Deal\nName : .+?\nOwner : .+?\nValue : .+?\nProbability : .+?\nMilestone : .+?\nDeal Source : .+?\nRelated to : .+?$/i;
-// eslint-disable-next-line no-useless-escape
-const dealSplitter = /^Create Deal\nName : \s*|\s+Owner : \s*|\s+Value : \s*|\s+Probability : \s*|\s+Milestone : \s*|\s+Deal Source : \s*|\s+Related to : \s*|\s+\z/gi;
+const dealSplitter = /^Create Deal\nName : \s*|\s+Owner : \s*|\s+Value : \s*|\s+Probability : \s*|\s+Milestone : \s*|\s+Deal Source : \s*|\s+Related to : \s*|\s+$/gi;
 const relatedToSplitter = /^\s*|\s*?,\s*|\s*$/gi;
 
 /** @param {string} text */

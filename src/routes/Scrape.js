@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const { chromeExecutablePath, userDataDir } = require('../../env');
+const { userDataDir } = require('../../env');
 const { waitForChat, scrapeChats } = require('../methods/Chats');
 const service = require('../services/BreefAdminService');
 const {
@@ -37,31 +37,28 @@ const reducer = (acc, { messages }) =>
     }, acc);
 
 const openPage = async () => {
-    const browser = await puppeteer.launch({
-        headless: false,
-        executablePath: chromeExecutablePath,
-        userDataDir
-    });
+    const browser = await puppeteer.launch({ headless: true, userDataDir });
 
     const page = (await browser.pages())[0] || (await browser.newPage());
-    await page.goto('https://web.whatsapp.com', {
-        waitUntil: 'load'
-    });
+    await page.goto('https://web.whatsapp.com', { waitUntil: 'load' });
     return page;
 };
 
-/** @param {import('./src/methods/Chats').ScrapeChatConfig} config */
+/** @param {import('../methods/Chats').ScrapeChatConfig} config */
 const scrape = async (config = defaultConfig) => {
     try {
+        console.log('Prepare page');
         const page = await openPage();
 
         await waitForChat(page);
+        console.log('Scrapping ...');
         const chats = await scrapeChats(page, config);
         /** @type {Messages} */
         const { deals, contacts } = chats.reduce(reducer, {
             deals: [],
             contacts: []
         });
+        console.log('Send too breef admin');
         await Promise.all([
             page.browser().close(),
             service.postDeals(deals),

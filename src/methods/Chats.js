@@ -241,6 +241,7 @@ const scrapeTimeAndUnreadStatus = async chat => {
 /**
  * @typedef {object} CurrentElement
  * @property {Chat[]} result
+ * @property {string} name
  * @property {boolean} unread
  * @property {string} time
  * @property {ElementHandle} chat
@@ -257,6 +258,7 @@ const getCurrentElement = async (accumulator, chatsIncludeRegExp) => {
         return { result: allChats };
     }
     const chat = currentChats.pop();
+    /** @type {string} */
     const name = await getProperty(
         await chat.$('span._1wjpf:not(._3NFp9)'),
         'title'
@@ -330,8 +332,10 @@ const scrapeChats = async (page, { chatsIncludeRegExp, messagesMaxRegExp }) => {
         const { allChats, names, reachBottom, currentChats } = accumulator;
         names.push(name);
         if (unread) {
+            console.log(`unread: ${name}, pass`);
             await sleep(2);
         } else {
+            console.log(`scrape: ${name}`);
             await showMessages(chat);
             const messages = await scrapAllMessages(page, messagesMaxRegExp);
             await showContactDetail(page);

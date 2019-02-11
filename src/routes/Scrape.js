@@ -47,10 +47,12 @@ const openPage = async () => {
 /** @param {import('../methods/Chats').ScrapeChatConfig} config */
 const scrape = async (config = defaultConfig) => {
     try {
+        // eslint-disable-next-line no-console
         console.log('Prepare page');
         const page = await openPage();
 
         await waitForChat(page);
+        // eslint-disable-next-line no-console
         console.log('Scrapping ...');
         const chats = await scrapeChats(page, config);
         /** @type {Messages} */
@@ -58,12 +60,11 @@ const scrape = async (config = defaultConfig) => {
             deals: [],
             contacts: []
         });
+        await page.browser().close();
+        // eslint-disable-next-line no-console
         console.log('Send too breef admin');
-        await Promise.all([
-            page.browser().close(),
-            service.postDeals(deals),
-            service.postContacts(contacts)
-        ]);
+        await service.postContacts(contacts);
+        await service.postDeals(deals);
         // eslint-disable-next-line no-console
         console.log(
             `Scrapping success\n, deals: ${JSON.stringify(

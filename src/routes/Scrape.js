@@ -3,6 +3,7 @@ const { userDataDir } = require('../../env');
 const { waitForChat, scrapeChats } = require('../methods/Chats');
 const service = require('../services/BreefAdminService');
 const { isLead, parseLead } = require('../utils/Messages');
+const { headless } = require('../../env');
 
 /** @type {import('../methods/Chats').ScrapeChatConfig} */
 const defaultConfig = {
@@ -29,7 +30,7 @@ const reducer = (acc, { phone, messages }) =>
 
 const openPage = async () => {
     const browser = await puppeteer.launch({
-        headless: true,
+        headless: headless === 'true',
         userDataDir,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });

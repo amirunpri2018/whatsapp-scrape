@@ -10,11 +10,8 @@ const messageInRegex = /message-in/;
  * @typedef {import('puppeteer').ElementHandle} ElementHandle
  */
 
-/**
- * @param {Page} page
- */
-const waitForChat = async page =>
-    page.waitFor('div._2wP_Y', { timeout: 60000 });
+/** @param {Page} page */
+const waitForChat = async page => page.waitFor('div._2wP_Y', { timeout: 0 });
 
 /**
  * @typedef {object} Contact

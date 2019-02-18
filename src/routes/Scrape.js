@@ -2,12 +2,7 @@ const puppeteer = require('puppeteer');
 const { userDataDir } = require('../../env');
 const { waitForChat, scrapeChats } = require('../methods/Chats');
 const service = require('../services/BreefAdminService');
-const {
-    isDeal,
-    isContact,
-    parseDeal,
-    parseContact
-} = require('../utils/Messages');
+const { isLead, parseLead } = require('../utils/Messages');
 
 /** @type {import('../methods/Chats').ScrapeChatConfig} */
 const defaultConfig = {
@@ -21,17 +16,13 @@ const defaultConfig = {
  * @property {import('../services/BreefAdminService').Contact[]} contacts
  */
 /**
- * @param {Messages} acc
+ * @param {import('../services/BreefAdminService').Lead[]} acc
  * @param {import('../methods/Chats').Chat} param
  */
-const reducer = (acc, { messages }) =>
+const reducer = (acc, { phone, messages }) =>
     messages.reduce((a, { text, type }) => {
-        if (type === 'out') {
-            if (isContact(text)) {
-                a.contacts.push(parseContact(text));
-            } else if (isDeal(text)) {
-                a.deals.push(parseDeal(text));
-            }
+        if (type === 'out' && isLead(text)) {
+            a.push({ ...parseLead(text), phone });
         }
         return a;
     }, acc);
@@ -55,23 +46,14 @@ const scrape = async (config = defaultConfig) => {
         // eslint-disable-next-line no-console
         console.log('Scrapping ...');
         const chats = await scrapeChats(page, config);
-        /** @type {Messages} */
-        const { deals, contacts } = chats.reduce(reducer, {
-            deals: [],
-            contacts: []
-        });
+        const leads = chats.reduce(reducer, []);
         await page.browser().close();
         // eslint-disable-next-line no-console
         console.log('Send too breef admin');
-        await service.postContacts(contacts);
-        await service.postDeals(deals);
+        await service.postLeads(leads);
         // eslint-disable-next-line no-console
         console.log(
-            `Scrapping success\n, deals: ${JSON.stringify(
-                deals,
-                null,
-                2
-            )}\ncontacts: ${JSON.stringify(contacts, null, 2)}`
+            `Scrapping success\n, contacts: ${JSON.stringify(leads, null, 2)}`
         );
     } catch (err) {
         // eslint-disable-next-line no-console

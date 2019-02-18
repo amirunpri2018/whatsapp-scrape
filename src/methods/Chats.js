@@ -13,7 +13,8 @@ const messageInRegex = /message-in/;
 /**
  * @param {Page} page
  */
-const waitForChat = async page => page.waitFor('div._2wP_Y');
+const waitForChat = async page =>
+    page.waitFor('div._2wP_Y', { timeout: 60000 });
 
 /**
  * @typedef {object} Contact

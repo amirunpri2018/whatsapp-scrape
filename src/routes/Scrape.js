@@ -28,7 +28,11 @@ const reducer = (acc, { phone, messages }) =>
     }, acc);
 
 const openPage = async () => {
-    const browser = await puppeteer.launch({ headless: true, userDataDir });
+    const browser = await puppeteer.launch({
+        headless: true,
+        userDataDir,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
 
     const page = (await browser.pages())[0] || (await browser.newPage());
     await page.goto('https://web.whatsapp.com', { waitUntil: 'load' });

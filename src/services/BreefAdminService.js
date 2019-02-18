@@ -19,6 +19,13 @@ const { breefAdminApi, breefAdminAuthorization } = require('../../env');
  * @property {string} phone
  * @property {string} owner
  */
+/**
+ * @typedef {object} Lead
+ * @property {string} owner
+ * @property {string} name
+ * @property {string} company
+ * @property {string} phone
+ */
 
 const service = axios.default.create({
     baseURL: breefAdminApi,
@@ -31,4 +38,7 @@ const postDeals = async data => service.post('/lead', { data });
 /** @param {Contact[]} data */
 const postContacts = async data => service.post('/contact', { data });
 
-module.exports = { postDeals, postContacts };
+/** @param {Lead[]} data */
+const postLeads = async data => service.post('/contact', { data });
+
+module.exports = { postDeals, postContacts, postLeads };

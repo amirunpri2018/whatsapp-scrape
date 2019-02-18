@@ -1,17 +1,21 @@
 const contactRegex = /^Create Contact\nName : .+?\nCompany : .+?\nSources : .+?\nAdd Phone : .+?\nOwner : .+?$/i;
-// eslint-disable-next-line no-useless-escape
-const contactSplitter = /^Create Contact\nName : \s*|\s+Company : \s*|\s+Sources : \s*|\s+Add Phone : \s*|\s+Owner : \s*|\s+\z/gi;
+const contactSplitter = /^Create Contact\nName : \s*|\s+Company : \s*|\s+Sources : \s*|\s+Add Phone : \s*|\s+Owner : \s*|\s+$/gi;
 
 const dealRegex = /^Create Deal\nName : .+?\nOwner : .+?\nValue : .+?\nProbability : .+?\nMilestone : .+?\nDeal Source : .+?\nRelated to : .+?$/i;
-// eslint-disable-next-line no-useless-escape
-const dealSplitter = /^Create Deal\nName : \s*|\s+Owner : \s*|\s+Value : \s*|\s+Probability : \s*|\s+Milestone : \s*|\s+Deal Source : \s*|\s+Related to : \s*|\s+\z/gi;
+const dealSplitter = /^Create Deal\nName : \s*|\s+Owner : \s*|\s+Value : \s*|\s+Probability : \s*|\s+Milestone : \s*|\s+Deal Source : \s*|\s+Related to : \s*|\s+$/gi;
 const relatedToSplitter = /^\s*|\s*?,\s*|\s*$/gi;
+
+const leadRegex = /^\[[A-Z]{1,3}?\].*?(data.*simpan|simpan.*data).*?\nName *?: *?(\S|(.\S))+?.*\nCompany *?: *?(\S|(.\S))+?.*$/i;
+const leadSplitter = /^\[|\].+?\nName\s*?:\s*|\s+?Company *?:\s*|\s+$/gi;
 
 /** @param {string} text */
 const isContact = text => contactRegex.test(text);
 
 /** @param {string} text */
 const isDeal = text => dealRegex.test(text);
+
+/** @param {string} text */
+const isLead = text => leadRegex.test(text);
 
 /** @param {string} text */
 const notEmpty = text => text && text.length > 0;
@@ -48,4 +52,30 @@ const parseContact = text => {
     };
 };
 
-module.exports = { isContact, isDeal, parseContact, parseDeal };
+/**
+ * @typedef {object} Lead
+ * @property {string} owner
+ * @property {string} name
+ * @property {string} company
+ */
+/**
+ * @param {string} text
+ * @returns {Lead}
+ */
+const parseLead = text => {
+    const split = text.split(leadSplitter);
+    return {
+        owner: split[1],
+        name: split[2],
+        company: split[3]
+    };
+};
+
+module.exports = {
+    isContact,
+    isDeal,
+    isLead,
+    parseContact,
+    parseDeal,
+    parseLead
+};

@@ -8,6 +8,7 @@
  * @property {string} chromeExecutablePath
  * @property {string} userDataDir
  * @property {'true' | 'false'} headless
+ * @property {string} slackWebhook
  */
 
 /** @type {ENV} */

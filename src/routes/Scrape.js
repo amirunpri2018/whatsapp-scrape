@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const { userDataDir } = require('../../env');
 const { waitForChat, scrapeChats } = require('../methods/Chats');
 const service = require('../services/BreefAdminService');
+const { sendFailedScrapeNotification } = require('../services/SlackService');
 const { isLead, parseLead } = require('../utils/Messages');
 const { headless } = require('../../env');
 
@@ -42,6 +43,7 @@ const openPage = async () => {
 
 /** @param {import('../methods/Chats').ScrapeChatConfig} config */
 const scrape = async (config = defaultConfig) => {
+    const startTime = new Date();
     try {
         // eslint-disable-next-line no-console
         console.log('Prepare page');
@@ -65,6 +67,12 @@ const scrape = async (config = defaultConfig) => {
         console.log('Srapping failed');
         // eslint-disable-next-line no-console
         console.log(err);
+        const endTime = new Date();
+        await sendFailedScrapeNotification({
+            message: err.message,
+            startTime,
+            endTime
+        });
     }
 };
 

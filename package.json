@@ -4,8 +4,10 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node -r dotenv/config index.js",
-    "cron": "node -r dotenv/config cron.js"
+    "env-config": "node -r dotenv/config",
+    "start": "yarn env-config index.js",
+    "cron": "yarn env-config cron.js",
+    "test": "ava"
   },
   "dependencies": {
     "axios": "^0.18.0",

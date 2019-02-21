@@ -3,6 +3,7 @@ const { userDataDir } = require('../../env');
 const { waitForChat, scrapeChats } = require('../methods/Chats');
 const service = require('../services/BreefAdminService');
 const { sendFailedScrapeNotification } = require('../services/SlackService');
+const { failedScrapeNotification } = require('../utils/Slacks');
 const { isLead, parseLead } = require('../utils/Messages');
 const { headless } = require('../../env');
 
@@ -67,12 +68,13 @@ const scrape = async (config = defaultConfig) => {
         console.log('Srapping failed');
         // eslint-disable-next-line no-console
         console.log(err);
-        const endTime = new Date();
-        await sendFailedScrapeNotification({
-            message: err.message,
-            startTime,
-            endTime
-        });
+        await sendFailedScrapeNotification(
+            failedScrapeNotification({
+                message: err.message,
+                startTime,
+                endTime: new Date()
+            })
+        );
     }
 };
 

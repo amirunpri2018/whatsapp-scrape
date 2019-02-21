@@ -181,7 +181,7 @@ const showMessages = async chat => {
  * @returns {Promise<void>}
  */
 const showContactDetail = async page => {
-    (await page.waitFor('div._1WBXd')).click();
+    (await page.waitFor('div._3mKlI')).click();
     await page.waitFor('div._1CRb5._34vig');
     await page.waitFor('div._3dGYA[title="loading messages"]', {
         hidden: true

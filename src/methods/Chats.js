@@ -11,7 +11,8 @@ const messageInRegex = /message-in/;
  */
 
 /** @param {Page} page */
-const waitForChat = async page => page.waitFor('div._2wP_Y', { timeout: 0 });
+const waitForChat = async page =>
+    page.waitFor('div._2wP_Y', { timeout: 60000 });
 
 /**
  * @typedef {object} Contact
@@ -40,7 +41,7 @@ const scrapeContact = async page => {
  * @param {RegExp} maxRegExp
  */
 const autoScroll = async (page, maxRegExp) => {
-    const messagesScroll = await page.waitFor('div._2nmDZ');
+    const messagesScroll = await page.waitFor('div._2nmDZ', { timeout: 60000 });
     await page.evaluate(
         (p, y) => p.scrollBy(0, y),
         messagesScroll,

@@ -2,43 +2,31 @@ const axios = require('axios');
 const { slackWebhook } = require('../../env');
 
 /**
+ * @typedef {object} Field
+ * @property {string} title
+ * @property {string} value
+ * @property {boolean} short
+ */
+/**
+ * @typedef {object} Attachment
+ * @property {string} fallback
+ * @property {string} title
+ * @property {string} text
+ * @property {string} color
+ * @property {Field[]} fields
+ * @property {string} footer
+ * @property {number} ts timestamp in seconds
+ */
+/**
  * @typedef {object} FailedScrapeNotification
- * @property {string} message
- * @property {Date} startTime
- * @property {Date} endTime
+ * @property {string} text
+ * @property {Attachment[]} attachments
  */
 
 /**
- * @param {FailedScrapeNotification} param
+ * @param {FailedScrapeNotification} data
  */
-const sendFailedScrapeNotification = ({ message, startTime, endTime }) =>
-    axios.default.post(slackWebhook, {
-        text: 'WhatsApp Scrapping Failed',
-        attachments: [
-            {
-                fallback: 'Message',
-                title: 'Message',
-                text: message,
-                color: '#548fe4',
-                fields: [
-                    {
-                        title: 'Priority',
-                        value: 'High',
-                        short: false
-                    },
-                    {
-                        title: 'Start',
-                        value: startTime.toString()
-                    },
-                    {
-                        title: 'End',
-                        value: endTime.toString()
-                    }
-                ],
-                footer: 'WhatsApp Scrape',
-                ts: endTime.getTime() / 1000
-            }
-        ]
-    });
+const sendFailedScrapeNotification = data =>
+    axios.default.post(slackWebhook, data);
 
 module.exports = { sendFailedScrapeNotification };

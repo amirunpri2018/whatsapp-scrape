@@ -6,6 +6,7 @@ const { sendFailedScrapeNotification } = require('../services/SlackService');
 const { failedScrapeNotification } = require('../utils/Slacks');
 const { isLead, parseLead } = require('../utils/Messages');
 const { headless } = require('../../env');
+const { sleep } = require('../utils/Utils');
 
 /** @type {import('../methods/Chats').ScrapeChatConfig} */
 const defaultConfig = {
@@ -78,6 +79,8 @@ const scrape = async (config = defaultConfig) => {
     }
 };
 
+let scrapping = false;
+
 /**
  * @typedef {object} Query
  * @property {string} chatsIncludeRegExp
@@ -99,26 +102,30 @@ const scrapeHandler = async ({
                   messagesMaxRegExp: new RegExp(messagesMaxRegExp, 'i')
               }
             : undefined;
-    scrape(config);
+    if (scrapping) {
+        return 'Another scrapping process is running';
+    }
+    (async () => {
+        scrapping = true;
+        try {
+            await sleep(15);
+            await scrape(config);
+        } finally {
+            scrapping = false;
+        }
+    })();
     return 'Scrapping is started ...';
 };
 
-/**
- * @type {import('fastify').RouteOptions<any, any, any, Query>}
- */
-const scrapeRoute = {
-    method: 'GET',
-    url: '/',
-    schema: {
-        querystring: {
-            chatsIncludeRegExp: { type: 'string' },
-            messagesMaxRegExp: { type: 'string' }
-        },
-        response: {
-            200: { type: 'string' }
-        }
+/** @type {import('fastify').RouteSchema} */
+const scrapeSchema = {
+    querystring: {
+        chatsIncludeRegExp: { type: 'string' },
+        messagesMaxRegExp: { type: 'string' }
     },
-    handler: scrapeHandler
+    response: {
+        200: { type: 'string' }
+    }
 };
 
-module.exports = { scrape, scrapeRoute };
+module.exports = { scrape, scrapeSchema, scrapeHandler };

@@ -6,7 +6,6 @@ const { sendFailedScrapeNotification } = require('../services/SlackService');
 const { failedScrapeNotification } = require('../utils/Slacks');
 const { isLead, parseLead } = require('../utils/Messages');
 const { headless } = require('../../env');
-const { sleep } = require('../utils/Utils');
 
 /** @type {import('../methods/Chats').ScrapeChatConfig} */
 const defaultConfig = {
@@ -108,7 +107,6 @@ const scrapeHandler = async ({
     (async () => {
         scrapping = true;
         try {
-            await sleep(15);
             await scrape(config);
         } finally {
             scrapping = false;

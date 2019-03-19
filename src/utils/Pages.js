@@ -1,4 +1,18 @@
+const puppeteer = require('puppeteer');
 const { sleep } = require('./Utils');
+const { headless, userDataDir } = require('../../env');
+
+const openPage = async () => {
+    const browser = await puppeteer.launch({
+        headless: headless === 'true',
+        userDataDir,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+
+    const page = (await browser.pages())[0] || (await browser.newPage());
+    await page.goto('https://web.whatsapp.com', { waitUntil: 'load' });
+    return page;
+};
 
 /**
  * @typedef {import('puppeteer').Page} Page
@@ -46,4 +60,10 @@ const getProperty = async (element, name) =>
 const waitForFromElement = async (element, selector) =>
     (await element.$(selector)) || waitForFromElement(element, selector);
 
-module.exports = { autoScroll, scrollTo, getProperty, waitForFromElement };
+module.exports = {
+    autoScroll,
+    scrollTo,
+    getProperty,
+    waitForFromElement,
+    openPage
+};

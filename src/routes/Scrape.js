@@ -1,16 +1,59 @@
-const puppeteer = require('puppeteer');
-const { userDataDir } = require('../../env');
-const { waitForChat, scrapeChats } = require('../methods/Chats');
+const {
+    waitForChat,
+    scrapeChats,
+    scrapeContacts
+} = require('../methods/Chats');
 const service = require('../services/BreefAdminService');
-const { sendFailedScrapeNotification } = require('../services/SlackService');
-const { failedScrapeNotification } = require('../utils/Slacks');
+const { sendScrapeNotification } = require('../services/SlackService');
+const { scrapeNotification } = require('../utils/Slacks');
 const { isLead, parseLead } = require('../utils/Messages');
-const { headless } = require('../../env');
+const { openPage } = require('../utils/Pages');
 
 /** @type {import('../methods/Chats').ScrapeChatConfig} */
 const defaultConfig = {
     chatsIncludeRegExp: /^[0-2][0-9]:[0-5][0-9]$/,
     messagesMaxRegExp: /^TODAY$/i
+};
+
+/** @param {import('../methods/Chats').ScrapeContactConfig} config */
+const scrapeContactsFunction = async (config = defaultConfig) => {
+    const startTime = new Date();
+    try {
+        // eslint-disable-next-line no-console
+        console.log('Prepare page');
+        const page = await openPage();
+
+        await waitForChat(page);
+        // eslint-disable-next-line no-console
+        console.log('Scrapping ...');
+        const chats = await scrapeContacts(page, config);
+        await page.browser().close();
+        // eslint-disable-next-line no-console
+        console.log(
+            `Scrapping success\n, contacts: ${JSON.stringify(chats, null, 2)}`
+        );
+        await sendScrapeNotification(
+            scrapeNotification({
+                title: 'WhatsApp Scraping Success',
+                message: `${chats.length} chat(s) scrapped`,
+                startTime,
+                endTime: new Date()
+            })
+        );
+    } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log('Srapping failed');
+        // eslint-disable-next-line no-console
+        console.log(err);
+        await sendScrapeNotification(
+            scrapeNotification({
+                title: 'WhatsApp Scraping Failed',
+                message: err.message,
+                startTime,
+                endTime: new Date()
+            })
+        );
+    }
 };
 
 /**
@@ -30,20 +73,8 @@ const reducer = (acc, { phone, messages }) =>
         return a;
     }, acc);
 
-const openPage = async () => {
-    const browser = await puppeteer.launch({
-        headless: headless === 'true',
-        userDataDir,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-
-    const page = (await browser.pages())[0] || (await browser.newPage());
-    await page.goto('https://web.whatsapp.com', { waitUntil: 'load' });
-    return page;
-};
-
 /** @param {import('../methods/Chats').ScrapeChatConfig} config */
-const scrape = async (config = defaultConfig) => {
+const scrapeChatsFunction = async (config = defaultConfig) => {
     const startTime = new Date();
     try {
         // eslint-disable-next-line no-console
@@ -63,13 +94,22 @@ const scrape = async (config = defaultConfig) => {
         console.log(
             `Scrapping success\n, contacts: ${JSON.stringify(leads, null, 2)}`
         );
+        await sendScrapeNotification(
+            scrapeNotification({
+                title: 'WhatsApp Scraping Success',
+                message: `${leads.length} lead(s) scrapped`,
+                startTime,
+                endTime: new Date()
+            })
+        );
     } catch (err) {
         // eslint-disable-next-line no-console
         console.log('Srapping failed');
         // eslint-disable-next-line no-console
         console.log(err);
-        await sendFailedScrapeNotification(
-            failedScrapeNotification({
+        await sendScrapeNotification(
+            scrapeNotification({
+                title: 'WhatsApp Scraping Failed',
                 message: err.message,
                 startTime,
                 endTime: new Date()
@@ -81,14 +121,14 @@ const scrape = async (config = defaultConfig) => {
 let scrapping = false;
 
 /**
- * @typedef {object} Query
+ * @typedef {object} ChatsQuery
  * @property {string} chatsIncludeRegExp
  * @property {string} messagesMaxRegExp
  */
 /**
- * @type {import('fastify').RequestHandler<any, any, Query>}
+ * @type {import('fastify').RequestHandler<any, any, ChatsQuery>}
  */
-const scrapeHandler = async ({
+const scrapeChatsHandler = async ({
     query: { chatsIncludeRegExp, messagesMaxRegExp }
 }) => {
     const config =
@@ -107,7 +147,7 @@ const scrapeHandler = async ({
     (async () => {
         scrapping = true;
         try {
-            await scrape(config);
+            await scrapeChatsFunction(config);
         } finally {
             scrapping = false;
         }
@@ -116,7 +156,7 @@ const scrapeHandler = async ({
 };
 
 /** @type {import('fastify').RouteSchema} */
-const scrapeSchema = {
+const scrapeChatsSchema = {
     querystring: {
         chatsIncludeRegExp: { type: 'string' },
         messagesMaxRegExp: { type: 'string' }
@@ -126,4 +166,49 @@ const scrapeSchema = {
     }
 };
 
-module.exports = { scrape, scrapeSchema, scrapeHandler };
+/**
+ * @typedef {object} ContactsQuery
+ * @property {string} filter
+ */
+/**
+ * @type {import('fastify').RequestHandler<any, any, ContactsQuery>}
+ */
+const scrapeContactsHandler = async ({ query: { filter } }) => {
+    const config =
+        filter && filter.length > 0
+            ? {
+                  chatsIncludeRegExp: new RegExp(filter, 'i')
+              }
+            : undefined;
+    if (scrapping) {
+        return 'Another scrapping process is running';
+    }
+    (async () => {
+        scrapping = true;
+        try {
+            await scrapeContactsFunction(config);
+        } finally {
+            scrapping = false;
+        }
+    })();
+    return 'Scrapping is started ...';
+};
+
+/** @type {import('fastify').RouteSchema} */
+const scrapeContactsSchema = {
+    querystring: {
+        filter: { type: 'string' }
+    },
+    response: {
+        200: { type: 'string' }
+    }
+};
+
+module.exports = {
+    scrapeChatsFunction,
+    scrapeContactsFunction,
+    scrapeChatsSchema,
+    scrapeContactsSchema,
+    scrapeChatsHandler,
+    scrapeContactsHandler
+};

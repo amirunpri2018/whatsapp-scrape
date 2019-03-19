@@ -1,10 +1,10 @@
 require('axios');
 require('cheerio');
-const { scrape } = require('./src/routes/Scrape');
+const { scrapeChatsFunction } = require('./src/routes/Scrape');
 
 (async () => {
     try {
-        await scrape();
+        await scrapeChatsFunction();
         process.exit();
     } catch (err) {
         // eslint-disable-next-line no-console

@@ -1,5 +1,6 @@
 /**
  * @typedef {object} Param
+ * @property {string} title
  * @property {string} message
  * @property {Date} startTime
  * @property {Date} endTime
@@ -22,10 +23,10 @@ const createDateString = (date, text, fallback) =>
 
 /**
  * @param {Param} param
- * @returns {import('../services/SlackService').FailedScrapeNotification}
+ * @returns {import('../services/SlackService').ScrapeNotification}
  */
-const failedScrapeNotification = ({ message, startTime, endTime }) => ({
-    text: 'WhatsApp Scrapping Failed',
+const scrapeNotification = ({ title, message, startTime, endTime }) => ({
+    text: title,
     attachments: [
         {
             fallback: 'Message',
@@ -65,4 +66,4 @@ const failedScrapeNotification = ({ message, startTime, endTime }) => ({
     ]
 });
 
-module.exports = { failedScrapeNotification, createDateString, tokens };
+module.exports = { scrapeNotification, createDateString, tokens };

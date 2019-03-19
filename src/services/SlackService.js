@@ -18,15 +18,14 @@ const { slackWebhook } = require('../../env');
  * @property {number} ts timestamp in seconds
  */
 /**
- * @typedef {object} FailedScrapeNotification
+ * @typedef {object} ScrapeNotification
  * @property {string} text
  * @property {Attachment[]} attachments
  */
 
 /**
- * @param {FailedScrapeNotification} data
+ * @param {ScrapeNotification} data
  */
-const sendFailedScrapeNotification = data =>
-    axios.default.post(slackWebhook, data);
+const sendScrapeNotification = data => axios.default.post(slackWebhook, data);
 
-module.exports = { sendFailedScrapeNotification };
+module.exports = { sendScrapeNotification };

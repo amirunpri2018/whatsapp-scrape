@@ -152,8 +152,9 @@ const scrapAllMessages = async (page, maxRegExp) => {
  * @property {ElementHandle[]} currentChats
  * @property {number} currentHeight
  * @property {boolean} reachBottom
- * @property {Chat[]} allChats
+ * @property {T[]} allChats
  * @property {string[]} names
+ * @template T
  */
 
 /**
@@ -306,6 +307,40 @@ const prepareNextAcc = async (page, accumulator, current) => {
 };
 
 /**
+ * @typedef {object} ScrapeContactConfig
+ * @property {RegExp} chatsIncludeRegExp
+ */
+/**
+ * @param {Page} page
+ * @param {ScrapeContactConfig} config
+ * @returns {Promise<{ name: string }[]>}
+ */
+const scrapeContacts = async (page, { chatsIncludeRegExp }) => {
+    /**
+     * @param {Acc<{ name: string }>} accumulator
+     */
+    const scrape = async accumulator => {
+        const current = await getCurrentElement(
+            accumulator,
+            chatsIncludeRegExp
+        );
+        if (current.result) {
+            return current.result;
+        }
+        const { name } = current;
+        const { allChats, names, reachBottom, currentChats } = accumulator;
+        names.push(name);
+        // eslint-disable-next-line no-console
+        console.log(`scrape: ${name}`);
+        allChats.push({ name });
+        return reachBottom && currentChats.length === 0
+            ? allChats
+            : scrape(await prepareNextAcc(page, accumulator, current));
+    };
+    return scrape(await createInitialAcc(page));
+};
+
+/**
  * @typedef {object} ScrapeChatConfig
  * @property {RegExp} chatsIncludeRegExp
  * @property {RegExp} messagesMaxRegExp
@@ -317,7 +352,7 @@ const prepareNextAcc = async (page, accumulator, current) => {
  */
 const scrapeChats = async (page, { chatsIncludeRegExp, messagesMaxRegExp }) => {
     /**
-     * @param {Acc} accumulator
+     * @param {Acc<Chat>} accumulator
      */
     const scrape = async accumulator => {
         const current = await getCurrentElement(
@@ -351,4 +386,4 @@ const scrapeChats = async (page, { chatsIncludeRegExp, messagesMaxRegExp }) => {
     return scrape(await createInitialAcc(page));
 };
 
-module.exports = { waitForChat, scrapeChats };
+module.exports = { waitForChat, scrapeChats, scrapeContacts };

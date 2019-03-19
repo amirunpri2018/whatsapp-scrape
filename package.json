@@ -7,6 +7,7 @@
     "env-config": "node -r dotenv/config",
     "start": "yarn env-config index.js",
     "cron": "yarn env-config cron.js",
+    "scrape": "yarn env-config scrape-chats.js",
     "test": "ava"
   },
   "dependencies": {
